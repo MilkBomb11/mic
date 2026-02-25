@@ -1,0 +1,167 @@
+use crate::ast::{Expr, Stmt, BinaryOperator, UnaryOperator};
+use crate::typ::Type;
+use crate::value::Val;
+use std::str::FromStr;
+
+grammar;
+
+match {
+    r"\s*" => { }, // ignore whitespace
+    r"//[^\n\r]*" => { }, // single-line comment
+    r"/\*([^*]|(\*+[^*/]))*\*+/" => { }, // multi-line comment
+} else { _ }
+
+pub Program: Vec<Box<Stmt>> = {
+    <stmts:Stmt*> => stmts,
+}
+
+Stmt: Box<Stmt> = {
+    "break" ";" => Box::new(Stmt::Break),
+    "continue" ";" => Box::new(Stmt::Continue),
+    "return" <e:Expr> ";" => Box::new(Stmt::Return(e)),
+    <e:Expr> ";" => Box::new(Stmt::Expr(e)),
+
+    "if" <cond:Expr> <true_arm:Block> "else" <false_arm:Stmt> => Box::new(Stmt::If {cond, true_arm, false_arm}),
+    "if" <cond:Expr> <true_arm:Block> => Box::new(Stmt::If {
+        cond,
+        true_arm, 
+        false_arm: Box::new(Stmt::Block(vec![]))
+    }),
+
+    "while" <cond:Expr> <body:Block> => Box::new(Stmt::While {cond, body}),
+
+    <lhs:Expr> "=" <rhs:Expr> ";" => {
+        match *lhs {
+            Expr::Var(id) => Box::new(Stmt::Assign(id, rhs)),
+            Expr::Deref(ptr) => Box::new(Stmt::PtrUpdate(ptr, rhs)),
+            Expr::Subscr(arr, idx) => Box::new(Stmt::ArrUpdate(arr, idx, rhs)),
+            _ => panic!("Invalid left-hand side in assignment"),
+        }
+    },
+
+    <t:Type> <id:Name> "=" <e:Expr> ";" => Box::new(Stmt::Define(t, id, e)),
+    <t:Type> <id:Name> ";" => Box::new(Stmt::Declare(t, id)),
+    <t:Type> <id:Name> <dims:("[" <Num> "]")+> ";" => {
+        let mut arr_type = t;
+        for dim in dims.into_iter().rev() { arr_type = Type::Arr(Box::new(arr_type), dim as usize); }
+        Box::new(Stmt::Declare(arr_type, id))
+    },
+    <b:Block> => b,
+    <ret_type:Type> <name:Name> "(" <args:Comma<Param>> ")" <body:Stmt> => {
+        Box::new(Stmt::FnDecl { name, args, ret_type, body })
+    },
+}
+
+Param: (String, Type) = {
+    <t:Type> <id:Name> => (id, t),
+};
+
+Block: Box<Stmt> = {
+    "{" <stmts:Stmt*> "}" => Box::new(Stmt::Block(stmts)),
+};
+
+Expr: Box<Expr> = {
+    <l:Expr> "||" <r:LogicalAnd> => Box::new(Expr::BinOp(l, BinaryOperator::Or, r)),
+    LogicalAnd,
+}
+
+LogicalAnd: Box<Expr> = {
+    <l:LogicalAnd> "&&" <r:Equality> => Box::new(Expr::BinOp(l, BinaryOperator::And, r)),
+    Equality,
+}
+
+Equality: Box<Expr> = {
+    <l:Equality> "==" <r:Comparison> => Box::new(Expr::BinOp(l, BinaryOperator::Eq, r)),
+    <l:Equality> "!=" <r:Comparison> => Box::new(Expr::BinOp(l, BinaryOperator::Neq, r)),
+    Comparison,
+}
+
+Comparison: Box<Expr> = {
+    <l:Comparison> "<" <r:Term> => Box::new(Expr::BinOp(l, BinaryOperator::Lt, r)),
+    <l:Comparison> "<=" <r:Term> => Box::new(Expr::BinOp(l, BinaryOperator::Leq, r)),
+    <l:Comparison> ">" <r:Term> => Box::new(Expr::BinOp(l, BinaryOperator::Gt, r)),
+    <l:Comparison> ">=" <r:Term> => Box::new(Expr::BinOp(l, BinaryOperator::Geq, r)),
+    Term,
+}
+
+Term: Box<Expr> = {
+    <l:Term> "+" <r:Factor> => Box::new(Expr::BinOp(l, BinaryOperator::Add, r)),
+    <l:Term> "-" <r:Factor> => Box::new(Expr::BinOp(l, BinaryOperator::Sub, r)),
+    Factor,
+}
+
+Factor: Box<Expr> = {
+    <l:Factor> "*" <r:Prefix> => Box::new(Expr::BinOp(l, BinaryOperator::Mul, r)),
+    <l:Factor> "/" <r:Prefix> => Box::new(Expr::BinOp(l, BinaryOperator::Div, r)),
+    Prefix,
+}
+
+Prefix: Box<Expr> = {
+    "+" <r:Prefix> => Box::new(Expr::UnOp(UnaryOperator::Pos, r)),
+    "-" <r:Prefix> => Box::new(Expr::UnOp(UnaryOperator::Neg, r)),
+    "!" <r:Prefix> => Box::new(Expr::UnOp(UnaryOperator::Not, r)),
+    "&" <r:Prefix> => Box::new(Expr::AddrOf(r)),
+    "*" <r:Prefix> => Box::new(Expr::Deref(r)),
+    PostFix,
+}
+
+PostFix: Box<Expr> = {
+    <l:PostFix> "[" <e:Expr> "]" => Box::new(Expr::Subscr(l, e)),
+    <l:PostFix> "as" <t:Type> => Box::new(Expr::Cast(l, t)),
+    Atom,
+}
+
+Atom: Box<Expr> = {
+    "true" => Box::new(Expr::Const(Val::Bool(true))),
+    "false" => Box::new(Expr::Const(Val::Bool(false))),
+    <id:Name> => Box::new(Expr::Var(id)),
+    <n:Num> => Box::new(Expr::Const(Val::Int(n))),
+    <c:Char> => Box::new(Expr::Const(Val::Byte(c))),
+    <name:Name> "(" <args:Comma<Expr>> ")" => Box::new(Expr::Call { name, args }),
+    "(" <e:Expr> ")" => e,
+}
+
+Num: i32 = {
+    r"[0-9]+" => i32::from_str(<>).unwrap(),
+}
+
+Char: u8 = {
+    <s:r#"'([^\\']|\\[nrt0\\'"]|\\x[0-9a-fA-F]{2})'"#> => {
+        let inner = &s[1..s.len()-1];
+        if inner.len() == 1 { inner.as_bytes()[0] }
+        else if inner.starts_with("\\x") {u8::from_str_radix(&inner[2..], 16).unwrap() }
+        else {
+            match inner {
+                "\\n" => b'\n',
+                "\\t" => b'\t',
+                "\\r" => b'\r',
+                "\\0" => b'\0',
+                "\\'" => b'\'',
+                "\\\"" => b'\"',
+                _ => unreachable!("Lexer allowed an unknown escape sequence"),
+            }
+        }
+    },
+}
+
+Name: String = {
+    r"[A-Za-z_][A-Za-z_0-9]*" => String::from(<>),
+}
+
+Type: Type = {
+    "ptr" "<" <t:Type> ">" => Type::Ptr(Box::new(t)),
+    "int" => Type::Int,
+    "bool" => Type::Bool,
+    "byte" => Type::Byte,
+}
+
+Comma<T>: Vec<T> = {
+    => vec![],
+    
+    <e:T> <v:("," <T>)*> ","? => {
+        let mut res = vec![e];
+        res.extend(v);
+        res
+    }
+};
+

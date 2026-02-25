@@ -1,0 +1,11 @@
+[package]
+name = "mic"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+lalrpop-util = "0.23.0"
+regex = "1"
+
+[build-dependencies]
+lalrpop = "0.23.0"
