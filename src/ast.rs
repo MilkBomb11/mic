@@ -3,32 +3,32 @@ use crate::value::Val;
 
 #[derive(Debug)]
 pub enum Expr {
-    Const(Val),
-    Var(String),
-    UnOp(UnaryOperator, Box<Expr>),
-    BinOp(Box<Expr>, BinaryOperator, Box<Expr>),
-    Deref(Box<Expr>),
-    AddrOf(Box<Expr>),
-    Subscr(Box<Expr>, Box<Expr>),
-    Cast(Box<Expr>, Type),
-    Call {name:String, args:Vec<Box<Expr>>},
+    Const(usize, Val),
+    Var(usize, String),
+    UnOp(usize, UnaryOperator, Box<Expr>),
+    BinOp(usize, Box<Expr>, BinaryOperator, Box<Expr>),
+    Deref(usize, Box<Expr>),
+    AddrOf(usize, Box<Expr>),
+    Subscr(usize, Box<Expr>, Box<Expr>),
+    Cast(usize, Box<Expr>, Type),
+    Call {loc:usize, name:String, args:Vec<Box<Expr>>, ret_type:Option<Type>},
 }
 
 #[derive(Debug)]
 pub enum Stmt {
-    Expr(Box<Expr>),
-    Declare(Type, String),
-    Define(Type, String, Box<Expr>),
-    PtrUpdate(Box<Expr>, Box<Expr>),
-    ArrUpdate(Box<Expr>, Box<Expr>, Box<Expr>),
-    Assign(String, Box<Expr>),
-    Block(Vec<Box<Stmt>>),
-    If {cond:Box<Expr>, true_arm:Box<Stmt>, false_arm:Box<Stmt>},
-    While {cond:Box<Expr>, body:Box<Stmt>},
-    FnDecl {name:String, args:Vec<(String,Type)>, ret_type:Type, body:Box<Stmt>},
-    Return(Box<Expr>),
-    Break,
-    Continue,
+    Expr(usize, Box<Expr>),
+    Declare(usize, Type, String),
+    Define(usize, Type, String, Box<Expr>),
+    PtrUpdate(usize, Box<Expr>, Box<Expr>),
+    ArrUpdate(usize, Box<Expr>, Box<Expr>, Box<Expr>),
+    Assign(usize, String, Box<Expr>),
+    Block(usize, Vec<Box<Stmt>>),
+    If {loc:usize, cond:Box<Expr>, true_arm:Box<Stmt>, false_arm:Box<Stmt>},
+    While {loc:usize, cond:Box<Expr>, body:Box<Stmt>},
+    FnDecl {loc:usize, name:String, args:Vec<(String,Type)>, ret_type:Type, body:Box<Stmt>},
+    Return(usize, Box<Expr>),
+    Break(usize),
+    Continue(usize),
 }
 
 #[derive(Debug)]

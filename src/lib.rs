@@ -1,6 +1,8 @@
 pub mod ast;
 pub mod typ;
 pub mod value;
+pub mod symbol_table;
+pub mod typecheck;
 
 use std::fmt::{Display, Debug};
 
