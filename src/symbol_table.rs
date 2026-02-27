@@ -1,12 +1,12 @@
 use std::{collections::HashMap, fmt::Debug};
 pub struct SymbolTable<V> 
-where V: Debug + Clone 
+where V: Debug
 {
     table:Vec<HashMap<String, V>>
 }
 
 impl<V> SymbolTable<V> 
-where V: Debug + Clone 
+where V: Debug 
 {
     pub fn new() -> Self {
         Self { table: Vec::new() }
@@ -24,7 +24,7 @@ where V: Debug + Clone
         match self.table.last_mut() {
             None => panic!("Tried to define {} {:?} to an empty symbol table", k, v),
             Some(map) => {
-                map.insert(k.to_string(), v.clone());
+                map.insert(k.to_string(), v);
             }
         }
     }
@@ -34,5 +34,12 @@ where V: Debug + Clone
             if let Some(v) = map.get(k) {return Some(v);}
         }
         None
+    }
+
+    pub fn lookup_current_scope(&self, k:&str) -> Option<&V> {
+        match self.table.last() {
+            None => None,
+            Some(map) => { map.get(k) }
+        }
     }
 }

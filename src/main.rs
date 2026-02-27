@@ -1,9 +1,7 @@
-use mic::{parser, report_error};
+use mic::{parser, report_error, report_parse_error, type_check::type_check};
 use std::{env, fs::File, io::Read, path::Path};
 fn main() {
     // Initialize the new Program level parser
-    let program_parser = parser::ProgramParser::new();
-
     let args: Vec<String> = env::args().collect();
     let path = 
         match args.len() {
@@ -23,11 +21,25 @@ fn main() {
         Ok(_) => (),
     }
 
-    match program_parser.parse(&source) {
+    run(&source);
+}
+
+fn run(source: &str) -> () {
+    let program_parser = parser::ProgramParser::new();
+
+    match program_parser.parse(source) {
         Ok(ast) => {
             println!("Successfully parsed {} statements!", ast.len());
             println!("{:#?}", ast);
+            let mut ast = ast;
+            match type_check(&mut ast) {
+                Ok(()) => {
+                    println!("Type-check successful for {} statements!", ast.len());
+                    println!("{:#?}", ast);
+                },
+                Err(err) => { report_error(source, err); }
+            }
         },
-        Err(e) => { report_error(&source, e); },
+        Err(err) => { report_parse_error(&source, err); },
     }
 }

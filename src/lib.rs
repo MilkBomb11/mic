@@ -2,7 +2,7 @@ pub mod ast;
 pub mod typ;
 pub mod value;
 pub mod symbol_table;
-pub mod typecheck;
+pub mod type_check;
 
 use std::fmt::{Display, Debug};
 
@@ -10,6 +10,12 @@ use lalrpop_util::lalrpop_mod;
 use lalrpop_util::ParseError;
 
 lalrpop_mod!(pub parser);
+
+#[derive(Debug, Clone)]
+pub struct Error {
+    loc: usize,
+    msg: String
+}
 
 pub fn get_line_col (source:&str, offset:usize) -> (usize, usize) {
     let mut line = 1;
@@ -25,7 +31,7 @@ pub fn get_line_col (source:&str, offset:usize) -> (usize, usize) {
     (line, col)
 }
 
-pub fn report_error<'a, T, E> (source:&'a str, err:ParseError<usize, T, E>) -> () 
+pub fn report_parse_error<'a, T, E> (source:&'a str, err:ParseError<usize, T, E>) -> () 
 where 
     T: Debug,
     E: Display,
@@ -57,4 +63,10 @@ where
             println!("{}", error);
         }
     }
+}
+
+pub fn report_error (source:&str, err:Error) -> () {
+    let (line, col) = get_line_col(source, err.loc);
+    println!("Error at line {}, column {}", line, col);
+    println!("{}", err.msg);
 }
