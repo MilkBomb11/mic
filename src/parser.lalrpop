@@ -2,8 +2,14 @@ use crate::ast::{Expr, Stmt, BinaryOperator, UnaryOperator};
 use crate::typ::Type;
 use crate::value::Val;
 use std::str::FromStr;
+use lalrpop_util::ParseError;
+use crate::Error;
 
 grammar;
+
+extern {
+    type Error = Error; 
+}
 
 match {
     r"\s*" => { }, // ignore whitespace
@@ -16,40 +22,48 @@ pub Program: Vec<Box<Stmt>> = {
 }
 
 Stmt: Box<Stmt> = {
-    <loc:@L> "break" ";" => Box::new(Stmt::Break(loc)),
-    <loc:@L> "continue" ";" => Box::new(Stmt::Continue(loc)),
-    <loc:@L> "return" <e:Expr> ";" => Box::new(Stmt::Return(loc, e)),
-    <loc:@L> <e:Expr> ";" => Box::new(Stmt::Expr(loc, e)),
+    <loc:@L> "break" ";" => Box::new(Stmt::Break{id:0, loc}),
+    <loc:@L> "continue" ";" => Box::new(Stmt::Continue{id:0, loc}),
+    <loc:@L> "return" <e:Expr> ";" => Box::new(Stmt::Return{id:0, loc, expr:e}),
+    <loc:@L> <e:Expr> ";" => Box::new(Stmt::Expr{id:0, loc, expr:e}),
 
-    "if" <loc:@L> <cond:Expr> <true_arm:Block> "else" <false_arm:Stmt> => Box::new(Stmt::If {loc, cond, true_arm, false_arm}),
+    "if" <loc:@L> <cond:Expr> <true_arm:Block> "else" <false_arm:Stmt> => Box::new(Stmt::If {id:0, loc, cond, true_arm, false_arm}),
     "if" <loc:@L> <cond:Expr> <true_arm:Block> => Box::new(Stmt::If {
+        id:0,
         loc,
         cond,
         true_arm, 
-        false_arm: Box::new(Stmt::Block(loc, vec![]))
+        false_arm: Box::new(Stmt::Block{id:0, loc, stmts:vec![]})
     }),
 
-    "while" <loc:@L> <cond:Expr> <body:Block> => Box::new(Stmt::While {loc, cond, body}),
+    "while" <loc:@L> <cond:Expr> <body:Block> => Box::new(Stmt::While {id:0, loc, cond, body}),
 
-    <loc:@L> <lhs:Expr> "=" <rhs:Expr> ";" => {
+    <loc:@L> <lhs:Expr> "=" <rhs:Expr> ";" =>? {
         match *lhs {
-            Expr::Var(_, id) => Box::new(Stmt::Assign(loc, id, rhs)),
-            Expr::Deref(_, ptr) => Box::new(Stmt::PtrUpdate(loc, ptr, rhs)),
-            Expr::Subscr(_, arr, idx) => Box::new(Stmt::ArrUpdate(loc, arr, idx, rhs)),
-            _ => panic!("Invalid left-hand side in assignment"),
+            Expr::Var{..} | Expr::Deref{..} | Expr::Subscr{..} => {
+                Ok(Box::new(Stmt::Assign { id: 0, loc, lhs, rhs }))
+            },
+            _ => {
+                Err(ParseError::User {
+                    error: Error {
+                        loc: loc,
+                        msg: "Invalid left-hand side in assignment. Must be a variable, pointer, or array index.".to_string(),
+                    },
+                })
+            }
         }
     },
 
-    <loc:@L> <t:Type> <id:Name> "=" <e:Expr> ";" => Box::new(Stmt::Define(loc, t, id, e)),
-    <loc:@L> <t:Type> <id:Name> ";" => Box::new(Stmt::Declare(loc, t, id)),
-    <loc:@L> <t:Type> <id:Name> <dims:("[" <Num> "]")+> ";" => {
+    <loc:@L> <t:Type> <name:Name> "=" <e:Expr> ";" => Box::new(Stmt::Define{id:0, loc, typ:t, name, rhs:e}),
+    <loc:@L> <t:Type> <name:Name> ";" => Box::new(Stmt::Declare{id:0, loc, typ:t, name}),
+    <loc:@L> <t:Type> <name:Name> <dims:("[" <Num> "]")+> ";" => {
         let mut arr_type = t;
         for dim in dims.into_iter().rev() { arr_type = Type::Arr(Box::new(arr_type), dim as usize); }
-        Box::new(Stmt::Declare(loc, arr_type, id))
+        Box::new(Stmt::Declare{id:0, loc, typ:arr_type, name})
     },
     <b:Block> => b,
     <loc:@L> <ret_type:Type> <name:Name> "(" <args:Comma<Param>> ")" <body:Stmt> => {
-        Box::new(Stmt::FnDecl {loc, name, args, ret_type, body })
+        Box::new(Stmt::FnDecl {id:0, loc, name, args, ret_type, body })
     },
 }
 
@@ -58,67 +72,67 @@ Param: (String, Type) = {
 };
 
 Block: Box<Stmt> = {
-    "{"<loc:@L> <stmts:Stmt*> "}" => Box::new(Stmt::Block(loc, stmts)),
+    "{"<loc:@L> <stmts:Stmt*> "}" => Box::new(Stmt::Block{id:0, loc, stmts}),
 };
 
 Expr: Box<Expr> = {
-    <loc:@L> <l:Expr> "||" <r:LogicalAnd> => Box::new(Expr::BinOp(loc, l, BinaryOperator::Or, r)),
+    <loc:@L> <l:Expr> "||" <r:LogicalAnd> => Box::new(Expr::BinOp{id:0, loc, left:l, operator:BinaryOperator::Or, right:r}),
     LogicalAnd,
 }
 
 LogicalAnd: Box<Expr> = {
-    <loc:@L> <l:LogicalAnd> "&&" <r:Equality> => Box::new(Expr::BinOp(loc, l, BinaryOperator::And, r)),
+    <loc:@L> <l:LogicalAnd> "&&" <r:Equality> => Box::new(Expr::BinOp{id:0, loc, left:l, operator:BinaryOperator::And, right:r}),
     Equality,
 }
 
 Equality: Box<Expr> = {
-    <loc:@L> <l:Equality> "==" <r:Comparison> => Box::new(Expr::BinOp(loc, l, BinaryOperator::Eq, r)),
-    <loc:@L> <l:Equality> "!=" <r:Comparison> => Box::new(Expr::BinOp(loc, l, BinaryOperator::Neq, r)),
+    <loc:@L> <l:Equality> "==" <r:Comparison> => Box::new(Expr::BinOp{id:0, loc, left:l, operator:BinaryOperator::Eq, right:r}),
+    <loc:@L> <l:Equality> "!=" <r:Comparison> => Box::new(Expr::BinOp{id:0, loc, left:l, operator:BinaryOperator::Neq, right:r}),
     Comparison,
 }
 
 Comparison: Box<Expr> = {
-    <loc:@L> <l:Comparison> "<" <r:Term> => Box::new(Expr::BinOp(loc, l, BinaryOperator::Lt, r)),
-    <loc:@L> <l:Comparison> "<=" <r:Term> => Box::new(Expr::BinOp(loc, l, BinaryOperator::Leq, r)),
-    <loc:@L> <l:Comparison> ">" <r:Term> => Box::new(Expr::BinOp(loc, l, BinaryOperator::Gt, r)),
-    <loc:@L> <l:Comparison> ">=" <r:Term> => Box::new(Expr::BinOp(loc, l, BinaryOperator::Geq, r)),
+    <loc:@L> <l:Comparison> "<" <r:Term> => Box::new(Expr::BinOp{id:0, loc, left:l, operator:BinaryOperator::Lt, right:r}),
+    <loc:@L> <l:Comparison> "<=" <r:Term> => Box::new(Expr::BinOp{id:0, loc, left:l, operator:BinaryOperator::Leq, right:r}),
+    <loc:@L> <l:Comparison> ">" <r:Term> => Box::new(Expr::BinOp{id:0, loc, left:l, operator:BinaryOperator::Gt, right:r}),
+    <loc:@L> <l:Comparison> ">=" <r:Term> => Box::new(Expr::BinOp{id:0, loc, left:l, operator:BinaryOperator::Geq, right:r}),
     Term,
 }
 
 Term: Box<Expr> = {
-    <loc:@L> <l:Term> "+" <r:Factor> => Box::new(Expr::BinOp(loc, l, BinaryOperator::Add, r)),
-    <loc:@L> <l:Term> "-" <r:Factor> => Box::new(Expr::BinOp(loc, l, BinaryOperator::Sub, r)),
+    <loc:@L> <l:Term> "+" <r:Factor> => Box::new(Expr::BinOp{id:0, loc, left:l, operator:BinaryOperator::Add, right:r}),
+    <loc:@L> <l:Term> "-" <r:Factor> => Box::new(Expr::BinOp{id:0, loc, left:l, operator:BinaryOperator::Sub, right:r}),
     Factor,
 }
 
 Factor: Box<Expr> = {
-    <loc:@L> <l:Factor> "*" <r:Prefix> => Box::new(Expr::BinOp(loc, l, BinaryOperator::Mul, r)),
-    <loc:@L> <l:Factor> "/" <r:Prefix> => Box::new(Expr::BinOp(loc, l, BinaryOperator::Div, r)),
+    <loc:@L> <l:Factor> "*" <r:Prefix> => Box::new(Expr::BinOp{id:0, loc, left:l, operator:BinaryOperator::Mul, right:r}),
+    <loc:@L> <l:Factor> "/" <r:Prefix> => Box::new(Expr::BinOp{id:0, loc, left:l, operator:BinaryOperator::Div, right:r}),
     Prefix,
 }
 
 Prefix: Box<Expr> = {
-    <loc:@L> "+" <r:Prefix> => Box::new(Expr::UnOp(loc, UnaryOperator::Pos, r)),
-    <loc:@L> "-" <r:Prefix> => Box::new(Expr::UnOp(loc, UnaryOperator::Neg, r)),
-    <loc:@L> "!" <r:Prefix> => Box::new(Expr::UnOp(loc, UnaryOperator::Not, r)),
-    <loc:@L> "&" <r:Prefix> => Box::new(Expr::AddrOf(loc, r)),
-    <loc:@L> "*" <r:Prefix> => Box::new(Expr::Deref(loc, r)),
+    <loc:@L> "+" <r:Prefix> => Box::new(Expr::UnOp{id:0, loc, operator:UnaryOperator::Pos, operand:r}),
+    <loc:@L> "-" <r:Prefix> => Box::new(Expr::UnOp{id:0, loc, operator:UnaryOperator::Neg, operand:r}),
+    <loc:@L> "!" <r:Prefix> => Box::new(Expr::UnOp{id:0, loc, operator:UnaryOperator::Not, operand:r}),
+    <loc:@L> "&" <r:Prefix> => Box::new(Expr::AddrOf{id:0, loc, operand:r}),
+    <loc:@L> "*" <r:Prefix> => Box::new(Expr::Deref{id:0, loc, operand:r}),
     PostFix,
 }
 
 PostFix: Box<Expr> = {
-    <loc:@L> <l:PostFix> "[" <e:Expr> "]" => Box::new(Expr::Subscr(loc, l, e)),
-    <loc:@L> <l:PostFix> "as" <t:Type> => Box::new(Expr::Cast(loc, l, t)),
+    <loc:@L> <l:PostFix> "[" <e:Expr> "]" => Box::new(Expr::Subscr{id:0, loc, operand:l, index:e}),
+    <loc:@L> <l:PostFix> "as" <t:Type> => Box::new(Expr::Cast{id:0, loc, operand:l, typ:t}),
     Atom,
 }
 
 Atom: Box<Expr> = {
-    <loc:@L> "true" => Box::new(Expr::Const(loc, Val::Bool(true))),
-    <loc:@L> "false" => Box::new(Expr::Const(loc, Val::Bool(false))),
-    <loc:@L> <id:Name> => Box::new(Expr::Var(loc, id)),
-    <loc:@L> <n:Num> => Box::new(Expr::Const(loc, Val::Int(n))),
-    <loc:@L> <c:Char> => Box::new(Expr::Const(loc, Val::Byte(c))),
-    <loc:@L> <name:Name> "(" <args:Comma<Expr>> ")" => Box::new(Expr::Call { loc, name, args, ret_type:None }),
+    <loc:@L> "true" => Box::new(Expr::Const{id:0, loc, val:Val::Bool(true)}),
+    <loc:@L> "false" => Box::new(Expr::Const{id:0, loc, val:Val::Bool(false)}),
+    <loc:@L> <name:Name> => Box::new(Expr::Var{id:0, loc, name}),
+    <loc:@L> <n:Num> => Box::new(Expr::Const{id:0, loc, val:Val::Int(n)}),
+    <loc:@L> <c:Char> => Box::new(Expr::Const{id:0, loc, val:Val::Byte(c)}),
+    <loc:@L> <name:Name> "(" <args:Comma<Expr>> ")" => Box::new(Expr::Call { id:0, loc, name, args, ret_type:None }),
     "(" <e:Expr> ")" => e,
 }
 

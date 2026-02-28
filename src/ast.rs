@@ -3,32 +3,30 @@ use crate::value::Val;
 
 #[derive(Debug)]
 pub enum Expr {
-    Const(usize, Val),
-    Var(usize, String),
-    UnOp(usize, UnaryOperator, Box<Expr>),
-    BinOp(usize, Box<Expr>, BinaryOperator, Box<Expr>),
-    Deref(usize, Box<Expr>),
-    AddrOf(usize, Box<Expr>),
-    Subscr(usize, Box<Expr>, Box<Expr>),
-    Cast(usize, Box<Expr>, Type),
-    Call {loc:usize, name:String, args:Vec<Box<Expr>>, ret_type:Option<Type>},
+    Const{id:usize, loc:usize, val:Val},
+    Var{id:usize, loc:usize, name:String},
+    UnOp{id:usize, loc:usize, operator:UnaryOperator, operand:Box<Expr>},
+    BinOp{id:usize, loc:usize, left:Box<Expr>, operator:BinaryOperator, right:Box<Expr>},
+    Deref{id:usize, loc:usize, operand:Box<Expr>},
+    AddrOf{id:usize, loc:usize, operand:Box<Expr>},
+    Subscr{id:usize, loc:usize, operand:Box<Expr>, index:Box<Expr>},
+    Cast{id:usize, loc:usize, operand:Box<Expr>, typ:Type},
+    Call {id:usize, loc:usize, name:String, args:Vec<Box<Expr>>, ret_type:Option<Type>},
 }
 
 #[derive(Debug)]
 pub enum Stmt {
-    Expr(usize, Box<Expr>),
-    Declare(usize, Type, String),
-    Define(usize, Type, String, Box<Expr>),
-    PtrUpdate(usize, Box<Expr>, Box<Expr>),
-    ArrUpdate(usize, Box<Expr>, Box<Expr>, Box<Expr>),
-    Assign(usize, String, Box<Expr>),
-    Block(usize, Vec<Box<Stmt>>),
-    If {loc:usize, cond:Box<Expr>, true_arm:Box<Stmt>, false_arm:Box<Stmt>},
-    While {loc:usize, cond:Box<Expr>, body:Box<Stmt>},
-    FnDecl {loc:usize, name:String, args:Vec<(String,Type)>, ret_type:Type, body:Box<Stmt>},
-    Return(usize, Box<Expr>),
-    Break(usize),
-    Continue(usize),
+    Expr{id:usize, loc:usize, expr:Box<Expr>},
+    Declare{id:usize, loc:usize, typ:Type, name:String},
+    Define{id:usize, loc:usize, typ:Type, name:String, rhs:Box<Expr>},
+    Assign{id:usize, loc:usize, lhs:Box<Expr>, rhs:Box<Expr>},
+    Block{id:usize, loc:usize, stmts:Vec<Box<Stmt>>},
+    If {id:usize, loc:usize, cond:Box<Expr>, true_arm:Box<Stmt>, false_arm:Box<Stmt>},
+    While {id:usize, loc:usize, cond:Box<Expr>, body:Box<Stmt>},
+    FnDecl {id:usize, loc:usize, name:String, args:Vec<(String,Type)>, ret_type:Type, body:Box<Stmt>},
+    Return{id:usize, loc:usize, expr:Box<Expr>},
+    Break{id:usize, loc:usize},
+    Continue{id:usize, loc:usize},
 }
 
 #[derive(Debug)]

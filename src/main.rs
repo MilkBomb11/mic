@@ -1,7 +1,6 @@
-use mic::{parser, report_error, report_parse_error, type_check::type_check};
-use std::{env, fs::File, io::Read, path::Path};
+use mic::{node_id_assigner::{IdBuilder, assign_id}, parser, report_error, report_parse_error, typ::Type, type_check::type_check};
+use std::{collections::HashMap, env, fs::File, io::Read, path::Path};
 fn main() {
-    // Initialize the new Program level parser
     let args: Vec<String> = env::args().collect();
     let path = 
         match args.len() {
@@ -29,13 +28,18 @@ fn run(source: &str) -> () {
 
     match program_parser.parse(source) {
         Ok(ast) => {
+            let mut id_builder = IdBuilder::new();
+            let mut ast = ast;
+            assign_id(&mut ast, &mut id_builder);
+
             println!("Successfully parsed {} statements!", ast.len());
             println!("{:#?}", ast);
-            let mut ast = ast;
-            match type_check(&mut ast) {
+            let mut node_type_map: HashMap<usize, Type> = HashMap::new();
+            match type_check(&mut ast, &mut node_type_map) {
                 Ok(()) => {
                     println!("Type-check successful for {} statements!", ast.len());
                     println!("{:#?}", ast);
+                    println!("{:?}", node_type_map);
                 },
                 Err(err) => { report_error(source, err); }
             }

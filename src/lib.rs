@@ -1,10 +1,12 @@
 pub mod ast;
 pub mod typ;
 pub mod value;
+pub mod node_id_assigner;
 pub mod symbol_table;
 pub mod type_check;
+pub mod ir;
 
-use std::fmt::{Display, Debug};
+use std::fmt::{Debug};
 
 use lalrpop_util::lalrpop_mod;
 use lalrpop_util::ParseError;
@@ -31,10 +33,9 @@ pub fn get_line_col (source:&str, offset:usize) -> (usize, usize) {
     (line, col)
 }
 
-pub fn report_parse_error<'a, T, E> (source:&'a str, err:ParseError<usize, T, E>) -> () 
+pub fn report_parse_error<'a, T> (source:&'a str, err:ParseError<usize, T, Error>) -> () 
 where 
     T: Debug,
-    E: Display,
 {
     match err {
         ParseError::InvalidToken { location } => {
@@ -59,8 +60,10 @@ where
             println!("Unexpected EOF. Expected the following.");
             println!("{}", expected.join(","));
         }
-        ParseError::User { error } => {
-            println!("{}", error);
+        ParseError::User { error: Error {loc, msg}} => {
+            let (line, col) = get_line_col(source, loc);
+            println!("Syntax error at line {}, column {}.", line, col);
+            println!("{}", msg);
         }
     }
 }
