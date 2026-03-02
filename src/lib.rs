@@ -3,8 +3,10 @@ pub mod typ;
 pub mod value;
 pub mod node_id_assigner;
 pub mod symbol_table;
+pub mod jump_context;
 pub mod type_check;
 pub mod ir;
+pub mod translate;
 
 use std::fmt::{Debug};
 

@@ -1,4 +1,5 @@
-use mic::{node_id_assigner::{IdBuilder, assign_id}, parser, report_error, report_parse_error, typ::Type, type_check::type_check};
+use mic::{ir::IRBuilder, node_id_assigner::{IdBuilder, assign_id}, parser, report_error, report_parse_error};
+use mic::{translate::translate_stmts, typ::Type, type_check::type_check};
 use std::{collections::HashMap, env, fs::File, io::Read, path::Path};
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -33,17 +34,27 @@ fn run(source: &str) -> () {
             assign_id(&mut ast, &mut id_builder);
 
             println!("Successfully parsed {} statements!", ast.len());
-            println!("{:#?}", ast);
+            //println!("{:#?}", ast);
             let mut node_type_map: HashMap<usize, Type> = HashMap::new();
             match type_check(&mut ast, &mut node_type_map) {
                 Ok(()) => {
                     println!("Type-check successful for {} statements!", ast.len());
-                    println!("{:#?}", ast);
-                    println!("{:?}", node_type_map);
+                    // println!("{:#?}", ast);
+                    // println!("{:?}", node_type_map);
                 },
-                Err(err) => { report_error(source, err); }
+                Err(err) => { report_error(source, err); return;}
+            }
+            let mut ir_builder = IRBuilder::new();
+            match translate_stmts(&ast, &mut ir_builder, &node_type_map) {
+                Ok(()) => {
+                    println!("Translation successful!");
+                    for instr in ir_builder.instrs.iter() {
+                        println!("{}", instr);
+                    }
+                },
+                Err(err) => { report_error(source, err); return;}
             }
         },
-        Err(err) => { report_parse_error(&source, err); },
+        Err(err) => { report_parse_error(&source, err); return;},
     }
 }

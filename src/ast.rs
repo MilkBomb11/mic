@@ -14,6 +14,22 @@ pub enum Expr {
     Call {id:usize, loc:usize, name:String, args:Vec<Box<Expr>>, ret_type:Option<Type>},
 }
 
+impl Expr {
+    pub fn id(&self) -> usize {
+        match self {
+            Expr::Const { id, .. }
+            | Expr::AddrOf { id, .. }
+            | Expr::BinOp { id, .. }
+            | Expr::UnOp { id, .. }
+            | Expr::Deref { id, .. }
+            | Expr::Cast { id, .. }
+            | Expr::Call { id, .. }
+            | Expr::Var { id, .. }
+            | Expr::Subscr { id, .. } => *id
+        }
+    }
+}
+
 #[derive(Debug)]
 pub enum Stmt {
     Expr{id:usize, loc:usize, expr:Box<Expr>},
