@@ -1,4 +1,5 @@
-use mic::{ir::IRBuilder, node_id_assigner::{IdBuilder, assign_id}, parser, report_error, report_parse_error};
+use mic::{function_renamer::FunctionRenamer, ir::IRBuilder, report_error, report_parse_error};
+use mic::{node_id_assigner::{IdBuilder, assign_id}, parser, program_printer::ProgramPrinter};
 use mic::{translate::translate_stmts, typ::Type, type_check::type_check};
 use std::{collections::HashMap, env, fs::File, io::Read, path::Path};
 fn main() {
@@ -44,16 +45,20 @@ fn run(source: &str) -> () {
                 },
                 Err(err) => { report_error(source, err); return;}
             }
+
             let mut ir_builder = IRBuilder::new();
             match translate_stmts(&ast, &mut ir_builder, &node_type_map) {
                 Ok(()) => {
                     println!("Translation successful!");
-                    for instr in ir_builder.instrs.iter() {
-                        println!("{}", instr);
-                    }
+                    println!("{}", ProgramPrinter(&ir_builder.instrs))
                 },
                 Err(err) => { report_error(source, err); return;}
             }
+
+            let mut function_renamer:FunctionRenamer = FunctionRenamer::new();
+            function_renamer.traverse(&mut ir_builder.instrs);
+            println!("Function renaming successful!");
+            println!("{}", ProgramPrinter(&ir_builder.instrs));
         },
         Err(err) => { report_parse_error(&source, err); return;},
     }

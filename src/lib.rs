@@ -7,6 +7,8 @@ pub mod jump_context;
 pub mod type_check;
 pub mod ir;
 pub mod translate;
+pub mod function_renamer;
+pub mod program_printer;
 
 use std::fmt::{Debug};
 

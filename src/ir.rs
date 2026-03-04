@@ -78,7 +78,7 @@ impl Instr {
                 write!(f, "{}{} := call ({}|{})",padding, dest, name, args.join(","))
             }
             Instr::FnDecl { name, params, body } => {
-                writeln!(f, "fn {}({}):", name, params.join(","), )?;
+                writeln!(f, "{}fn {}({}):", padding, name, params.join(","), )?;
                 for instr in body.iter() {
                     instr.fmt_with_depth(f, depth + 1)?;
                     writeln!(f)?;
