@@ -1,3 +1,4 @@
+use mic::flatten::flatten;
 use mic::{function_renamer::FunctionRenamer, ir::IRBuilder, report_error, report_parse_error};
 use mic::{node_id_assigner::{IdBuilder, assign_id}, parser, program_printer::ProgramPrinter};
 use mic::{translate::translate_stmts, typ::Type, type_check::type_check};
@@ -50,15 +51,20 @@ fn run(source: &str) -> () {
             match translate_stmts(&ast, &mut ir_builder, &node_type_map) {
                 Ok(()) => {
                     println!("Translation successful!");
-                    println!("{}", ProgramPrinter(&ir_builder.instrs))
+                    //println!("{}", ProgramPrinter(&ir_builder.instrs))
                 },
                 Err(err) => { report_error(source, err); return;}
             }
 
-            let mut function_renamer:FunctionRenamer = FunctionRenamer::new();
+            let mut function_renamer: FunctionRenamer = FunctionRenamer::new();
             function_renamer.traverse(&mut ir_builder.instrs);
             println!("Function renaming successful!");
-            println!("{}", ProgramPrinter(&ir_builder.instrs));
+            //println!("{}", ProgramPrinter(&ir_builder.instrs));
+
+            let mut flattened_ir_builder = IRBuilder::new();
+            flatten(&ir_builder.instrs, &mut flattened_ir_builder);
+            println!("Flattening successful!");
+            println!("{}", ProgramPrinter(&flattened_ir_builder.instrs));
         },
         Err(err) => { report_parse_error(&source, err); return;},
     }

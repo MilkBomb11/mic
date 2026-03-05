@@ -8,6 +8,7 @@ pub mod type_check;
 pub mod ir;
 pub mod translate;
 pub mod function_renamer;
+pub mod flatten;
 pub mod program_printer;
 
 use std::fmt::{Debug};

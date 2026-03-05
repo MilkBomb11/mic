@@ -1,9 +1,9 @@
-use std::fmt::Display;
+use std::{fmt::Display, vec};
 
 
 type Reg = String;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Operand {
     Reg(Reg),
     Imm(i32),
@@ -18,7 +18,7 @@ impl Display for Operand {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Lbl {
     Name(String),
     Resolved(usize),
@@ -33,7 +33,7 @@ impl Display for Lbl {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Instr {
     Alloc{dest:Reg, size:usize},
     Set{dest:Reg, src:Operand},
@@ -51,6 +51,62 @@ pub enum Instr {
 }
 
 impl Instr {
+    pub fn get_def(&self) -> Option<&str> {
+        match self {
+            Instr::Alloc { dest, .. }
+            | Instr::BinOp { dest, .. }
+            | Instr::UnOp { dest, .. }
+            | Instr::Call { dest, .. }
+            | Instr::Load { dest, .. }
+            | Instr::Set { dest, .. } => Some(dest.as_str()),
+            _ => None
+        }
+    }
+
+    pub fn get_use(&self) -> Vec<&str> {
+        match self {
+            Instr::Set { src, .. } => {
+                let mut uses = vec![];
+                if let Operand::Reg(r) = src { uses.push(r.as_str()); }
+                uses
+            }
+            Instr::BinOp { left, right, ..} => {
+                let mut uses = vec![];
+                if let Operand::Reg(r1) = left { uses.push(r1.as_str()); }
+                if let Operand::Reg(r2) = right { uses.push(r2.as_str()); }
+                uses
+            },
+            Instr::Ret { operand }
+            | Instr::UnOp { operand, .. } => {
+                let mut uses = vec![];
+                if let Operand::Reg(r) = operand { uses.push(r.as_str()); }
+                uses
+            },
+            Instr::Load { src, .. } => vec![src.as_str()],
+            Instr::Store { src, dest, .. } => {
+                let mut uses = vec![dest.as_str()];
+                if let Operand::Reg(r) = src { uses.push(r.as_str()); }
+                uses
+            },
+            Instr::GotoIf { cond, .. }
+            | Instr::GotoIfFalse { cond, .. } => {
+                let mut uses = vec![];
+                if let Operand::Reg(r) = cond { uses.push(r.as_str()); }
+                uses
+            },
+            Instr::Call { args, .. } => {
+                let mut uses = vec![];
+                for operand in args.iter() {
+                    if let Operand::Reg(r) = operand {
+                        uses.push(r.as_str());
+                    }
+                }
+                uses
+            },
+            _ => vec![]
+        }
+    }
+
     fn fmt_with_depth(&self, f: &mut std::fmt::Formatter<'_>, depth: usize) -> std::fmt::Result {
         let padding = " ".repeat(depth*4);
         match self {
@@ -97,7 +153,7 @@ impl Display for Instr {
 
 
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum BinaryOp {
     Add, Sub, Mul, Div,
     Lt, Leq, Gt, Geq,
@@ -121,7 +177,7 @@ impl Display for BinaryOp {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum UnaryOp {
     Neg, Pos, Not,
 }
@@ -136,7 +192,7 @@ impl Display for UnaryOp {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Size {
     Double,
     Word,
