@@ -10,6 +10,7 @@ pub mod translate;
 pub mod function_renamer;
 pub mod flatten;
 pub mod program_printer;
+pub mod capture;
 
 use std::fmt::{Debug};
 

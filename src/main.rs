@@ -1,3 +1,4 @@
+use mic::capture::capture;
 use mic::flatten::flatten;
 use mic::{function_renamer::FunctionRenamer, ir::IRBuilder, report_error, report_parse_error};
 use mic::{node_id_assigner::{IdBuilder, assign_id}, parser, program_printer::ProgramPrinter};
@@ -64,6 +65,10 @@ fn run(source: &str) -> () {
             let mut flattened_ir_builder = IRBuilder::new();
             flatten(&ir_builder.instrs, &mut flattened_ir_builder);
             println!("Flattening successful!");
+            println!("{}", ProgramPrinter(&flattened_ir_builder.instrs));
+
+            capture(&mut flattened_ir_builder.instrs);
+            println!("Capturing successful!");
             println!("{}", ProgramPrinter(&flattened_ir_builder.instrs));
         },
         Err(err) => { report_parse_error(&source, err); return;},
