@@ -65,7 +65,7 @@ fn run(source: &str) -> () {
             let mut flattened_ir_builder = IRBuilder::new();
             flatten(&ir_builder.instrs, &mut flattened_ir_builder);
             println!("Flattening successful!");
-            println!("{}", ProgramPrinter(&flattened_ir_builder.instrs));
+            //println!("{}", ProgramPrinter(&flattened_ir_builder.instrs));
 
             capture(&mut flattened_ir_builder.instrs);
             println!("Capturing successful!");
