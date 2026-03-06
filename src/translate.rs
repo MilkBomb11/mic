@@ -387,7 +387,22 @@ fn translate_stmt(
         },
         Stmt::Return { id:_, loc:_, expr } => {
             let r = translate_rvalue(expr, ir_builder, sym_tab, ntm);
-            ir_builder.emit(Instr::Ret { operand: (Operand::Reg(r)) });
+            ir_builder.emit(Instr::Ret { operand: Operand::Reg(r) });
+            Ok(())
+        },
+        Stmt::PrintByte { id:_, loc:_, expr } => {
+            let r = translate_rvalue(expr, ir_builder, sym_tab, ntm);
+            ir_builder.emit(Instr::PrintByte { operand: Operand::Reg(r) });
+            Ok(())
+        },
+        Stmt::PrintInt { id:_, loc:_, expr } => {
+            let r = translate_rvalue(expr, ir_builder, sym_tab, ntm);
+            ir_builder.emit(Instr::PrintInt { operand: Operand::Reg(r) });
+            Ok(())
+        },
+        Stmt::PrintString { id:_, loc:_, expr } => {
+            let r = translate_rvalue(expr, ir_builder, sym_tab, ntm);
+            ir_builder.emit(Instr::PrintString { src: Operand::Reg(r) });
             Ok(())
         },
         Stmt::Expr { id:_, loc:_, expr } => {

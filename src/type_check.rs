@@ -351,7 +351,7 @@ fn type_check_stmt (stmt:&mut Box<Stmt>, return_type:Option<&Type>, sym_tab:&mut
             else {
                 Err(Error {
                     loc: *loc,
-                    msg: format!("Type mismatch in assignment: expected {}, got {}", lhs_type, rhs_type)
+                    msg: format!("Type mismatch in assignment: expected {}, got {}.", lhs_type, rhs_type)
                 })
             }
         },
@@ -362,6 +362,44 @@ fn type_check_stmt (stmt:&mut Box<Stmt>, return_type:Option<&Type>, sym_tab:&mut
                 Err(err) => Err(err)
             }
         },
+        Stmt::PrintByte { id:_, loc, expr } => {
+            let (expr_type, _) = type_check_expr(expr, sym_tab, ntm)?;
+            if expr_type == Type::Byte {Ok(())}
+            else { 
+                Err(Error { 
+                    loc: *loc, 
+                    msg: format!("print_byte expected {} but got {}.", Type::Byte, expr_type) }) 
+            }
+        },
+        Stmt::PrintInt { id:_, loc, expr } => {
+            let (expr_type, _) = type_check_expr(expr, sym_tab, ntm)?;
+            if expr_type == Type::Int {Ok(())}
+            else {
+                Err(Error { 
+                    loc: *loc, 
+                    msg: format!("print_int expected {} but got {}.", Type::Int, expr_type)
+                })
+            }
+        },
+        Stmt::PrintString { id:_, loc, expr } => {
+            let (expr_type, _) = type_check_expr(expr, sym_tab, ntm)?;
+            match &expr_type {
+                Type::Ptr(t)
+                | Type::Arr(t, _) => {
+                    if t.as_ref() == &Type::Byte {Ok(())}
+                    else {
+                        Err(Error { 
+                        loc: *loc, 
+                        msg: format!("print_string expected {} but got {}.", Type::Ptr(Box::new(Type::Byte)), expr_type) })
+                    }
+                },
+                _ => {
+                    Err(Error { 
+                    loc: *loc, 
+                    msg: format!("print_string expected {} but got {}.", Type::Ptr(Box::new(Type::Byte)), expr_type) })
+                }
+            }
+        }
         Stmt::Return{id:_, loc, expr} => {
             let ret_type = 
                 if let Some(t) = return_type { t } 

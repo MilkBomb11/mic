@@ -48,6 +48,9 @@ pub enum Instr {
     Call{dest:Reg, name:String, args:Vec<Operand>},
     FnDecl{name:String, params:Vec<String>, body:Vec<Instr>},
     Ret{operand:Operand},
+    PrintInt{operand:Operand},
+    PrintByte{operand:Operand},
+    PrintString{src:Operand},
 }
 
 impl Instr {
@@ -77,6 +80,8 @@ impl Instr {
                 uses
             },
             Instr::Ret { operand }
+            | Instr::PrintInt { operand }
+            | Instr::PrintByte { operand }
             | Instr::UnOp { operand, .. } => {
                 let mut uses = vec![];
                 if let Operand::Reg(r) = operand { uses.push(r.as_str()); }
@@ -103,6 +108,11 @@ impl Instr {
                 }
                 uses
             },
+            Instr::PrintString { src } => {
+                let mut uses = vec![];
+                if let Operand::Reg(r) = src { uses.push(r.as_str()); }
+                uses
+            }
             _ => vec![]
         }
     }
@@ -122,6 +132,9 @@ impl Instr {
             Instr::GotoIfFalse { cond, dest } => write!(f, "{}if not {} goto {}", padding, cond, dest),
             Instr::Set { dest, src } => write!(f, "{}{} := {}",padding, dest, src),
             Instr::Ret { operand } => write!(f, "{}ret {}",padding, operand),
+            Instr::PrintInt { operand } => write!(f, "{}printint {}", padding, operand),
+            Instr::PrintByte { operand } => write!(f, "{}printchr {}", padding, operand),
+            Instr::PrintString { src } => write!(f, "{}printstr {}", padding, src),
             Instr::Load { size, dest, src } => write!(f, "{}{} := load {} [{}]", padding, dest, src, size),
             Instr::Store { size, dest, src } => write!(f, "{}store {} -> ({}) [{}]", padding, src, dest, size),
             Instr::Label { label } => write!(f, "{}label {}", padding, label),
