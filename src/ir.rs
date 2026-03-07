@@ -207,7 +207,7 @@ impl Display for UnaryOp {
 
 #[derive(Debug, Clone)]
 pub enum Size {
-    Double,
+    Long,
     Word,
     Byte,
 }
@@ -215,7 +215,7 @@ pub enum Size {
 impl Display for Size {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Size::Double => write!(f, "8 bytes"),
+            Size::Long => write!(f, "8 bytes"),
             Size::Word => write!(f, "4 bytes"),
             Size::Byte => write!(f, "byte"),
         }
@@ -261,5 +261,12 @@ impl IRBuilder {
         let label = format!(".L{}", self.label_counter);
         self.label_counter += 1;
         label
-    } 
+    }
+
+    pub fn epilogue(mut self) ->  Self {
+        self.instrs.extend(vec![Instr::Ret { operand: Operand::Imm(0) }]);
+        let instrs = self.instrs;
+        self.instrs = vec![Instr::FnDecl { name: "$main$".to_string(), params: vec![], body: instrs }];
+        return self
+    }
 }

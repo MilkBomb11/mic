@@ -6,7 +6,7 @@ use crate::{jump_context::{JumpContext}, symbol_table::SymbolTable, typ::Type, v
 fn size_type_of_type(t:&Type) -> Size {
     match t {
         Type::Arr(_, _) 
-        | Type::Ptr(_) => Size::Double,
+        | Type::Ptr(_) => Size::Long,
         Type::Bool
         | Type::Byte => Size::Byte,
         Type::Int => Size::Word,
@@ -304,12 +304,12 @@ fn translate_stmt(
             let addr_reg = ir_builder.new_reg();
             let size = size_of_type(typ);
             ir_builder.emit(Instr::Alloc { dest: addr_reg.clone(), size: size as usize });
-            sym_tab.define(name.as_str(), addr_reg.clone());
             let val_reg = translate_rvalue(rhs, ir_builder, sym_tab, ntm);
             ir_builder.emit(Instr::Store { 
                 size: size_type_of_type(typ), 
                 src: Operand::Reg(val_reg), 
-                dest: addr_reg });
+                dest: addr_reg.clone() });
+            sym_tab.define(name.as_str(), addr_reg);
             Ok(())
         },
         Stmt::Assign { id:_, loc:_, lhs, rhs } => {

@@ -56,6 +56,7 @@ fn run(source: &str) -> () {
                 },
                 Err(err) => { report_error(source, err); return;}
             }
+            let mut ir_builder = ir_builder.epilogue();
 
             let mut function_renamer: FunctionRenamer = FunctionRenamer::new();
             function_renamer.traverse(&mut ir_builder.instrs);
