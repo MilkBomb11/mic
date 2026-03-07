@@ -11,6 +11,8 @@ pub mod function_renamer;
 pub mod flatten;
 pub mod program_printer;
 pub mod capture;
+pub mod goto_cleanup;
+pub mod qbe;
 
 use std::fmt::{Debug};
 

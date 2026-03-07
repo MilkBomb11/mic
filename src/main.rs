@@ -1,8 +1,11 @@
 use mic::capture::capture;
 use mic::flatten::flatten;
+use mic::goto_cleanup::GotoCleanup;
+use mic::qbe::QbeGenerator;
 use mic::{function_renamer::FunctionRenamer, ir::IRBuilder, report_error, report_parse_error};
 use mic::{node_id_assigner::{IdBuilder, assign_id}, parser, program_printer::ProgramPrinter};
 use mic::{translate::translate_stmts, typ::Type, type_check::type_check};
+use std::io::Write;
 use std::{collections::HashMap, env, fs::File, io::Read, path::Path};
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -24,10 +27,21 @@ fn main() {
         Ok(_) => (),
     }
 
-    run(&source);
+    match run(&source) {
+        Ok(out) => {
+            let mut out_file = 
+                match File::create("./tests/output.ssa") {
+                    Ok(f) => f,
+                    Err(e) => panic!("Failed to create file because: {}", e)
+                };
+            write!(out_file, "{}", out).unwrap()
+        }
+        Err(()) => (),
+    }
+
 }
 
-fn run(source: &str) -> () {
+fn run(source: &str) -> Result<String,()> {
     let program_parser = parser::ProgramParser::new();
 
     match program_parser.parse(source) {
@@ -45,7 +59,7 @@ fn run(source: &str) -> () {
                     // println!("{:#?}", ast);
                     // println!("{:?}", node_type_map);
                 },
-                Err(err) => { report_error(source, err); return;}
+                Err(err) => { report_error(source, err); return Err(());}
             }
 
             let mut ir_builder = IRBuilder::new();
@@ -54,7 +68,7 @@ fn run(source: &str) -> () {
                     println!("Translation successful!");
                     //println!("{}", ProgramPrinter(&ir_builder.instrs))
                 },
-                Err(err) => { report_error(source, err); return;}
+                Err(err) => { report_error(source, err); return Err(());}
             }
             let mut ir_builder = ir_builder.epilogue();
 
@@ -71,7 +85,17 @@ fn run(source: &str) -> () {
             capture(&mut flattened_ir_builder.instrs);
             println!("Capturing successful!");
             println!("{}", ProgramPrinter(&flattened_ir_builder.instrs));
+
+            let mut ir_builder = IRBuilder::new();
+            let mut goto_cleanup = GotoCleanup::new(); 
+            goto_cleanup.cleanup(&flattened_ir_builder.instrs, &mut ir_builder,);
+            println!("Goto cleanup successful!");
+            println!("{}", ProgramPrinter(&ir_builder.instrs));
+
+            let mut qbe_gen = QbeGenerator::new();
+            let out = qbe_gen.generate(&ir_builder.instrs);
+            Ok(out)
         },
-        Err(err) => { report_parse_error(&source, err); return;},
+        Err(err) => { report_parse_error(&source, err); return Err(());},
     }
 }
