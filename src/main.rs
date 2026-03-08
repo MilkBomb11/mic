@@ -1,6 +1,5 @@
 use mic::capture::capture;
 use mic::flatten::flatten;
-use mic::goto_cleanup::GotoCleanup;
 use mic::qbe::QbeGenerator;
 use mic::return_check::return_check;
 use mic::{function_renamer::FunctionRenamer, ir::IRBuilder, report_error, report_parse_error};
@@ -130,14 +129,11 @@ fn run(source: &str, is_log: bool) -> Result<String,()> {
             if is_log { println!("Flattening successful!"); }
             //println!("{}", ProgramPrinter(&flattened_ir_builder.instrs));
 
-            capture(&mut flattened_ir_builder.instrs);
+            ir_builder.instrs = flattened_ir_builder.instrs;
+            
+            capture(&mut ir_builder.instrs);
             if is_log { println!("Capturing successful!"); }
             //println!("{}", ProgramPrinter(&flattened_ir_builder.instrs));
-
-            let mut ir_builder = IRBuilder::new();
-            let mut goto_cleanup = GotoCleanup::new(); 
-            goto_cleanup.cleanup(&flattened_ir_builder.instrs, &mut ir_builder,);
-            if is_log { println!("Goto cleanup successful!"); }
             if is_log { println!("{}", ProgramPrinter(&ir_builder.instrs)); }
 
             let mut qbe_gen = QbeGenerator::new();

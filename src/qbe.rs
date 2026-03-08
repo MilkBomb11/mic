@@ -4,13 +4,15 @@ use std::fmt::Write;
 pub struct QbeGenerator {
     out: String,
     fallthrough_count: usize,
+    is_terminated: bool,
 }
 
 impl QbeGenerator {
     pub fn new() -> Self {
         Self { 
             out: String::new(), 
-            fallthrough_count: 0 
+            fallthrough_count: 0,
+            is_terminated: false, 
         }
     }
 
@@ -50,6 +52,13 @@ impl QbeGenerator {
     }
 
     fn emit_instr(&mut self, instr: &Instr) -> () {
+        if self.is_terminated {
+            match instr {
+                Instr::Label { .. } | Instr::FnDecl { .. } => {}
+                _ => return, 
+            }
+        }
+
         match instr {
             Instr::FnDecl { name, params, body } => {
                 let safe_name = Self::pure_name(name);
@@ -64,8 +73,14 @@ impl QbeGenerator {
                 writeln!(self.out, "{}function l ${}({}) {{", export_kw, safe_name, qbe_params.join(", ")).unwrap();
                 writeln!(self.out, "@start").unwrap();
 
+                self.is_terminated = false;
                 for b_instr in body {
                     self.emit_instr(b_instr);
+                }
+
+                if !self.is_terminated {
+                    writeln!(self.out, "    ret 0").unwrap();
+                    self.is_terminated = true;
                 }
                 writeln!(self.out, "}}\n").unwrap();
             }
@@ -88,6 +103,7 @@ impl QbeGenerator {
                     Lbl::Resolved(r) => r.to_string(),
                 };
                 writeln!(self.out, "@{}", Self::sanitize(l_name.as_str())).unwrap();
+                self.is_terminated = false;
             }
             Instr::Goto { dest } => {
                 let l_name = match dest {
@@ -95,6 +111,7 @@ impl QbeGenerator {
                     Lbl::Resolved(r) => r.to_string(),
                 };
                 writeln!(self.out, "    jmp @{}", Self::sanitize(l_name.as_str())).unwrap();
+                self.is_terminated = true;
             }
             Instr::GotoIf { cond, dest } => {
                 let ft = self.new_fallthrough();
@@ -104,6 +121,7 @@ impl QbeGenerator {
                 };
                 writeln!(self.out, "    jnz {}, @{}, {}", Self::format_operand(cond), Self::sanitize(l_name.as_str()), ft).unwrap();
                 writeln!(self.out, "{}", ft).unwrap();
+                self.is_terminated = false;
             }
             Instr::GotoIfFalse { cond, dest } => {
                 let ft = self.new_fallthrough();
@@ -113,6 +131,7 @@ impl QbeGenerator {
                 };
                 writeln!(self.out, "    jnz {}, {}, @{}", Self::format_operand(cond), ft, Self::sanitize(l_name.as_str())).unwrap();
                 writeln!(self.out, "{}", ft).unwrap();
+                self.is_terminated = false;
             }
             Instr::Call { dest, name, args } => {
                 let qbe_args: Vec<String> = args.iter().map(|a| format!("l {}", Self::format_operand(a))).collect();
@@ -120,6 +139,7 @@ impl QbeGenerator {
             }
             Instr::Ret { operand } => {
                 writeln!(self.out, "    ret {}", Self::format_operand(operand)).unwrap();
+                self.is_terminated = true;
             }
             Instr::BinOp { dest, left, operator, right } => {
                 let dest_san = Self::pure_name(dest);
