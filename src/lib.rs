@@ -5,6 +5,7 @@ pub mod node_id_assigner;
 pub mod symbol_table;
 pub mod jump_context;
 pub mod type_check;
+pub mod return_check;
 pub mod ir;
 pub mod translate;
 pub mod function_renamer;

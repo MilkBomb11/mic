@@ -2,6 +2,7 @@ use mic::capture::capture;
 use mic::flatten::flatten;
 use mic::goto_cleanup::GotoCleanup;
 use mic::qbe::QbeGenerator;
+use mic::return_check::return_check;
 use mic::{function_renamer::FunctionRenamer, ir::IRBuilder, report_error, report_parse_error};
 use mic::{node_id_assigner::{IdBuilder, assign_id}, parser, program_printer::ProgramPrinter};
 use mic::{translate::translate_stmts, typ::Type, type_check::type_check};
@@ -62,6 +63,11 @@ fn run(source: &str) -> Result<String,()> {
                 Err(err) => { report_error(source, err); return Err(());}
             }
 
+            match return_check(&ast) {
+                Ok(_) => println!("Return-check successful!"),
+                Err(err) => { report_error(source, err); return Err(()); }
+            }
+
             let mut ir_builder = IRBuilder::new();
             match translate_stmts(&ast, &mut ir_builder, &node_type_map) {
                 Ok(()) => {
@@ -84,7 +90,7 @@ fn run(source: &str) -> Result<String,()> {
 
             capture(&mut flattened_ir_builder.instrs);
             println!("Capturing successful!");
-            println!("{}", ProgramPrinter(&flattened_ir_builder.instrs));
+            //println!("{}", ProgramPrinter(&flattened_ir_builder.instrs));
 
             let mut ir_builder = IRBuilder::new();
             let mut goto_cleanup = GotoCleanup::new(); 
