@@ -59,6 +59,7 @@ impl QbeGenerator {
                     .map(|param| format!("l {}", Self::to_local_reg(param)))
                     .collect();
                 let export_kw = if safe_name == "main_0" { "export " } else { "" };
+                let safe_name = if safe_name == "main_0" { "main" } else { &safe_name };
 
                 writeln!(self.out, "{}function l ${}({}) {{", export_kw, safe_name, qbe_params.join(", ")).unwrap();
                 writeln!(self.out, "@start").unwrap();
