@@ -405,6 +405,16 @@ fn translate_stmt(
             ir_builder.emit(Instr::PrintString { src: Operand::Reg(r) });
             Ok(())
         },
+        Stmt::GetByte { id:_, loc:_, expr } => {
+            let r = translate_rvalue(expr, ir_builder, sym_tab, ntm);
+            ir_builder.emit(Instr::GetByte { dest_addr: Operand::Reg(r) });
+            Ok(())
+        },
+        Stmt::GetInt { id:_, loc:_, expr } => {
+            let r = translate_rvalue(expr, ir_builder, sym_tab, ntm);
+            ir_builder.emit(Instr::GetInt { dest_addr: Operand::Reg(r) });
+            Ok(())
+        },
         Stmt::Expr { id:_, loc:_, expr } => {
             translate_rvalue(expr, ir_builder, sym_tab, ntm);
             Ok(())

@@ -28,6 +28,8 @@ Stmt: Box<Stmt> = {
     <loc:@L> "print_string" <e:Expr> ";" => Box::new(Stmt::PrintString{id:0, loc, expr:e}),
     <loc:@L> "print_byte" <e:Expr> ";" => Box::new(Stmt::PrintByte{id:0, loc, expr:e}),
     <loc:@L> "print_int" <e:Expr> ";" => Box::new(Stmt::PrintInt{id:0, loc, expr:e}),
+    <loc:@L> "get_byte" <e:Expr> ";" => Box::new(Stmt::GetByte{id:0, loc, expr:e}),
+    <loc:@L> "get_int" <e:Expr> ";" => Box::new(Stmt::GetInt{id:0, loc, expr:e}),
 
     <loc:@L> <e:Expr> ";" => Box::new(Stmt::Expr{id:0, loc, expr:e}),
 

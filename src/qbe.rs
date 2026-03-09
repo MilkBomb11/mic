@@ -1,4 +1,4 @@
-use crate::ir::{BinaryOp, Instr, Lbl, Operand, UnaryOp};
+use crate::ir::{BinaryOp, Instr, Lbl, Operand, Size, UnaryOp};
 use std::fmt::Write;
 
 pub struct QbeGenerator {
@@ -87,12 +87,21 @@ impl QbeGenerator {
             Instr::Alloc { dest, size } => {
                 writeln!(self.out, "    {} =l alloc8 {}", Self::sanitize(dest), size).unwrap();
             }
-            Instr::Load { dest, src, .. } => {
-                writeln!(self.out, "    {} =l loadl {}", Self::sanitize(dest), Self::sanitize(src)).unwrap();
+            Instr::Store { size, dest, src } => {
+                let store_inst = match size {
+                    Size::Byte => "storeb",
+                    Size::Word => "storew",
+                    Size::Long => "storel",
+                };
+                writeln!(self.out, "    {} {}, {}", store_inst, Self::format_operand(src), Self::to_local_reg(dest)).unwrap();
             }
-            Instr::Store { dest, src, .. } => {
-                // QBE store syntax: storel VALUE, ADDRESS
-                writeln!(self.out, "    storel {}, {}", Self::format_operand(src), Self::sanitize(dest)).unwrap();
+            Instr::Load { size, dest, src } => {
+                let load_inst = match size {
+                    Size::Byte => "loadub",
+                    Size::Word => "loadw",  
+                    Size::Long => "loadl",
+                };
+                writeln!(self.out, "    {} =l {} {}", Self::to_local_reg(dest), load_inst, Self::to_local_reg(src)).unwrap();
             }
             Instr::Set { dest, src } => {
                 writeln!(self.out, "    {} =l copy {}", Self::sanitize(dest), Self::format_operand(src)).unwrap();
@@ -187,6 +196,12 @@ impl QbeGenerator {
             }
             Instr::PrintString { src } => {
                 writeln!(self.out, "    call $print_string(l {})", Self::format_operand(src)).unwrap();
+            }
+            Instr::GetByte { dest_addr } => {
+                writeln!(self.out, "    call $get_byte(l {})", Self::format_operand(dest_addr)).unwrap();
+            }
+            Instr::GetInt { dest_addr } => {
+                writeln!(self.out, "    call $get_int(l {})", Self::format_operand(dest_addr)).unwrap();
             }
         }
     }

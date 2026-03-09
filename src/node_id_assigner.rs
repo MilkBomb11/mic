@@ -61,6 +61,8 @@ fn assign_id_stmt (stmt:&mut Box<Stmt>, id_builder: &mut IdBuilder) {
         Stmt::PrintByte { id, loc:_, expr }
         | Stmt::PrintString { id, loc:_, expr }
         | Stmt::PrintInt { id, loc:_, expr }
+        | Stmt::GetByte { id, loc:_, expr }
+        | Stmt::GetInt { id, loc:_, expr }
         | Stmt::Return { id, loc:_, expr } 
         | Stmt::Expr { id, loc:_, expr }=> {
             *id = id_builder.new_id();

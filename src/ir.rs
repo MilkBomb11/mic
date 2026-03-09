@@ -51,6 +51,8 @@ pub enum Instr {
     PrintInt{operand:Operand},
     PrintByte{operand:Operand},
     PrintString{src:Operand},
+    GetByte{dest_addr:Operand},
+    GetInt{dest_addr:Operand},
 }
 
 impl Instr {
@@ -112,7 +114,13 @@ impl Instr {
                 let mut uses = vec![];
                 if let Operand::Reg(r) = src { uses.push(r.as_str()); }
                 uses
-            }
+            },
+            Instr::GetInt { dest_addr }
+            | Instr::GetByte { dest_addr } => {
+                let mut uses = vec![];
+                if let Operand::Reg(r) = dest_addr { uses.push(r.as_str()); }
+                uses
+            },
             _ => vec![]
         }
     }
@@ -135,6 +143,8 @@ impl Instr {
             Instr::PrintInt { operand } => write!(f, "{}printint {}", padding, operand),
             Instr::PrintByte { operand } => write!(f, "{}printchr {}", padding, operand),
             Instr::PrintString { src } => write!(f, "{}printstr {}", padding, src),
+            Instr::GetByte { dest_addr } => write!(f, "{}getbyte {}", padding, dest_addr),
+            Instr::GetInt { dest_addr } => write!(f, "{}getint {}", padding, dest_addr),
             Instr::Load { size, dest, src } => write!(f, "{}{} := load {} [{}]", padding, dest, src, size),
             Instr::Store { size, dest, src } => write!(f, "{}store {} -> ({}) [{}]", padding, src, dest, size),
             Instr::Label { label } => write!(f, "{}label {}", padding, label),

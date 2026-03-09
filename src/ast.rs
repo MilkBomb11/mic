@@ -43,6 +43,8 @@ pub enum Stmt {
     PrintString {id:usize, loc:usize, expr:Box<Expr>},
     PrintByte {id:usize, loc:usize, expr:Box<Expr>},
     PrintInt {id:usize, loc:usize, expr:Box<Expr>},
+    GetByte {id:usize, loc:usize, expr:Box<Expr>},
+    GetInt {id:usize, loc:usize, expr:Box<Expr>},
     Return{id:usize, loc:usize, expr:Box<Expr>},
     Break{id:usize, loc:usize},
     Continue{id:usize, loc:usize},

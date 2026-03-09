@@ -399,7 +399,45 @@ fn type_check_stmt (stmt:&mut Box<Stmt>, return_type:Option<&Type>, sym_tab:&mut
                     msg: format!("print_string expected {} but got {}.", Type::Ptr(Box::new(Type::Byte)), expr_type) })
                 }
             }
-        }
+        },
+        Stmt::GetByte { id:_, loc, expr } => {
+            let (expr_type, _) = type_check_expr(expr, sym_tab, ntm)?;
+            match &expr_type {
+                Type::Ptr(t)
+                | Type::Arr(t, _) => {
+                    if t.as_ref() == &Type::Byte {Ok(())}
+                    else {
+                        Err(Error { 
+                        loc: *loc, 
+                        msg: format!("get_byte expected {} but got {}.", Type::Ptr(Box::new(Type::Byte)), expr_type) })
+                    }
+                },
+                _ => {
+                    Err(Error { 
+                    loc: *loc, 
+                    msg: format!("get_byte expected {} but got {}.", Type::Ptr(Box::new(Type::Byte)), expr_type) })
+                }
+            }
+        },
+        Stmt::GetInt { id:_, loc, expr } => {
+            let (expr_type, _) = type_check_expr(expr, sym_tab, ntm)?;
+            match &expr_type {
+                Type::Ptr(t)
+                | Type::Arr(t, _) => {
+                    if t.as_ref() == &Type::Int {Ok(())}
+                    else {
+                        Err(Error { 
+                        loc: *loc, 
+                        msg: format!("get_byte expected {} but got {}.", Type::Ptr(Box::new(Type::Int)), expr_type) })
+                    }
+                },
+                _ => {
+                    Err(Error { 
+                    loc: *loc, 
+                    msg: format!("get_byte expected {} but got {}.", Type::Ptr(Box::new(Type::Int)), expr_type) })
+                }
+            }
+        },
         Stmt::Return{id:_, loc, expr} => {
             let ret_type = 
                 if let Some(t) = return_type { t } 

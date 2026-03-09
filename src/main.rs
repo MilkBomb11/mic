@@ -42,6 +42,8 @@ fn main() {
 void print_int(long val) { printf("%ld", val); }
 void print_byte(long val) { printf("%c", (char)val); }
 void print_string(char* val) { printf("%s", val); }
+void get_byte(char* addr) {scanf("%c", addr);}
+void get_int(long* addr) {scanf("%ld", addr);}
 "#;
             fs::write(&temp_c, runtime_c_code).expect("Failed to write runtime.c");
 
