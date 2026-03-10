@@ -3,7 +3,7 @@
 ## Installation
 1. Install gcc or clang.
 2. Download the QBE 1.2 compilier backend [here](https://c9x.me/compile/releases.html.) and install it with the Makefile.
-3. Download the files from releases. 
+3. Download the files from [releases](https://github.com/MilkBomb11/mic/releases). 
 
 ## Build from Source
 1. Install gcc or clang.
