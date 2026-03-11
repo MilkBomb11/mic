@@ -1,5 +1,7 @@
 # mic
 
+A compiled toy language similar to C.
+
 ## Installation
 1. Install gcc or clang.
 2. Download the QBE 1.2 compilier backend [here](https://c9x.me/compile/releases.html.) and install it with the Makefile.
