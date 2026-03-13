@@ -1,6 +1,6 @@
 # mic
 
-A compiled toy language similar to C.
+A compiled toy language similar to C. It can handle mutual recursion and nested functions.
 
 ## Installation
 1. Install gcc or clang.
